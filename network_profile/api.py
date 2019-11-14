@@ -12,13 +12,14 @@ def _summarize_df(fwd_time, bwd_time,
     """
         Return a pandas.DataFrame summarizing the input sequences
     """
+    
     return pd.DataFrame({"layer":names,
-                         "fw_operation":fw_flops,
-                         "forward_time":fwd_time,
-                         "forward_effi": np.array(fw_flops)/np.array(fwd_time),
-                         "bw_operation": bw_flops,
-                         "backward_time":bwd_time,
-                         "backward_effi":np.array(bw_flops)/np.array(bwd_time),
+                         "fw_operation (Giga)":np.array(fw_flops) * 1e-6,
+                         "forward_time (us)":fwd_time,
+                         "forward_effi (TFLOPs)": (np.array(fw_flops)/(np.array(fwd_time)))  * 1e-6,
+                         "bw_operation (Giga)": np.array(bw_flops) * 1e-6,
+                         "backward_time (us)":bwd_time,
+                         "backward_effi (TFLOPs)":(np.array(bw_flops)/np.array(bwd_time))  * 1e-6,
                          "bw_time/fw_time":np.array(bwd_time)/np.array(fwd_time),
                          "input_size":in_size,
                          "output_size":out_size
