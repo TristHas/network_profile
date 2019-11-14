@@ -28,7 +28,12 @@ def t_closure_func(layer_stats):
     """
     def get_layer_statistics(module, input, output):
         layer_name = filter_mod_name(module)
-        ker = module.weight.shape[2:] if isconv(layer_name) else None
+        ker = module.weight.shape if isconv(layer_name) else None
+        if ker!= None:
+            if ker[1] == 1: #dw
+                layer_name = layer_name + "_dw"
+            ker = ker[2:]
+        
         info = [layer_name, input[0].shape, output.shape, ker]
         layer_stats.append(info)        
     return get_layer_statistics
