@@ -29,10 +29,6 @@ def t_closure_func(layer_stats):
     def get_layer_statistics(module, input, output):
         layer_name = filter_mod_name(module)
         ker = module.weight.shape if isconv(layer_name) else None
-        if ker!= None:
-            if ker[1] == 1: #dw
-                layer_name = layer_name + "_dw"
-            ker = ker[2:]
         
         info = [layer_name, input[0].shape, output.shape, ker]
         layer_stats.append(info)        
@@ -51,10 +47,10 @@ def t_profile_net(model, inp, layer_type=DEFAULT_LTYPE):
     """
     fwd_time, bwd_time = t_profile_timings(model, inp)
     fw_flops, bw_flops, names, \
-    in_size, out_size  = t_profile_theory(model, inp, layer_type)
+    in_size, out_size, mac  = t_profile_theory(model, inp, layer_type)
     data = summarize_df(fwd_time, bwd_time, 
                         fw_flops, bw_flops, names, 
-                        in_size, out_size)
+                        in_size, out_size, mac)
     return data
 
 def t_profile_theory(model, inp, layer_type=DEFAULT_LTYPE):
@@ -84,17 +80,21 @@ def t_summarize_layers_stats(info_collect):
         
     """
     names, in_sizes, out_sizes, ker = list(zip(*info_collect))
-    fw_flops, bw_flops = [],[]
+    fw_flops, bw_flops, macs = [],[],[]
     
     for name, out_size, in_size, k in zip(names, out_sizes, in_sizes, ker):
-        func = getattr(cal_op, str("cal_" + name))
+        flop_func = getattr(cal_op, str("cal_" + name))
+        mac_func = getattr(cal_op, str("mac_" + name))
         if k is None:
-            fw_flop = func(in_size, out_size)
+            mac = mac_func(in_size,out_size)
+            fw_flop = flop_func(in_size, out_size)
             bw_flop = fw_flop 
         else:
-            fw_flop = func(in_size, out_size, k)
+            mac = mac_func(in_size,out_size,k)
+            fw_flop = flop_func(in_size, out_size, k)
             bw_flop = 2*fw_flop 
         
         fw_flops.append(fw_flop)
         bw_flops.append(bw_flop)
-    return fw_flops, bw_flops, names, in_sizes, out_sizes
+        macs.append(mac)
+    return fw_flops, bw_flops, names, in_sizes, out_sizes, macs

@@ -8,7 +8,7 @@ from .helpers import DEFAULT_LTYPE
 
 def _summarize_df(fwd_time, bwd_time, 
                  fw_flops, bw_flops, 
-                 names, in_size, out_size):
+                 names, in_size, out_size, mac):
     """
         Return a pandas.DataFrame summarizing the input sequences
     """
@@ -22,7 +22,8 @@ def _summarize_df(fwd_time, bwd_time,
                          "backward_effi (TFLOPs)":(np.array(bw_flops)/np.array(bwd_time))  * 1e-6,
                          "bw_time/fw_time":np.array(bwd_time)/np.array(fwd_time),
                          "input_size":in_size,
-                         "output_size":out_size
+                         "output_size":out_size,
+                         "Mac":mac
                     })
 
 def t_profile_net(model, inp, layer_type=DEFAULT_LTYPE):
@@ -30,9 +31,9 @@ def t_profile_net(model, inp, layer_type=DEFAULT_LTYPE):
     """
     fwd_time, bwd_time = t_profile_timings(model, inp)
     fw_flops, bw_flops,\
-    names, in_size, out_size  = t_profile_theory(model, inp, layer_type)
+    names, in_size, out_size, mac  = t_profile_theory(model, inp, layer_type)
     
     return _summarize_df(fwd_time, bwd_time, 
                          fw_flops, bw_flops, names, 
-                         in_size, out_size)
+                         in_size, out_size, mac)
 
