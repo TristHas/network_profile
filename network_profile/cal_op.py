@@ -64,26 +64,16 @@ def cal_Conv3d(*para, stride=1, padding=1, groups=1, bias=False, name='conv'):
     flops = bs * c_in * X * Y * Z * c_out * kernel
     return flops
 
-def cal_Conv2d(*para, stride=1, padding=1, groups=1, bias=False, name='conv'):
-    input_shape = para[0]
+def cal_Conv2d(*para):
     output_shape = para[1]
-    
-    bs = input_shape[0]
-    c_in = input_shape[1]
-    
-    c_out = output_shape[1]
-    W = output_shape[-1]
-    H = output_shape[-2]
-    
-    kernel = np.prod(list(para[2]))
-    flops = bs * c_in * H  * W * c_out * kernel
-    return flops
 
-def cal_Conv2d_dw(*para):
-    c_in = para[0][1]
-    flops = cal_Conv2d(*para)
-    flops = flops / c_in
-    return flops
+    bs = output_shape[0]
+    kernel = np.prod(para[2])
+    H = output_shape[2]
+    W = output_shape[3]
+    
+    flop = kernel * H * W 
+    return flop
 
 def cal_BatchNorm2d(*para, name='batch_norm'):
     return np.prod(para[0])  
