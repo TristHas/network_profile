@@ -6,6 +6,7 @@ from .computation_timing import t_profile_timings
 from .computation_count import t_profile_theory
 from .memory_profile import log_memory
 from .helpers import DEFAULT_LTYPE
+from .plotting import *
 
 def _summarize_df(fwd_time, bwd_time, 
                  fw_flops, bw_flops, 
