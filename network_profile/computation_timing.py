@@ -43,7 +43,35 @@ def run_autograd_prof(func,*para):
         func_return = func(*para)
     return prof, func_return
 
-def t_summarize_layers_timing(cuda_r, lk_map=DEFAULT_LAYER_KERNEL, nrep=1):
+
+def correct_layer_time_order(names,fwd_op_time,bwd_op_time):
+    fwd_time2plot = []
+    bwd_time2plot = []
+
+    for name in names:
+        for fwd_times,bwd_times in zip(fwd_op_time,bwd_op_time):
+            times_key = list(fwd_times.keys())[0]
+            if(name == times_key):
+                fwd_time2plot.append(list(fwd_times.values())[0].pop(0))
+                bwd_time2plot.append(list(bwd_times.values())[0].pop(0))
+                
+    return fwd_time2plot, bwd_time2plot
+
+def kernel_fwd_bwd_time(fwd_ops, bwd_ops, results, nrep):
+    fwd_op_time = []
+    bwd_op_time = []
+
+    for fwd_op, bwd_op, layer_name in zip(fwd_ops, bwd_ops, fwd_ops.index):
+
+        fw_time = average_over_iter(results[str(fwd_op)], nrep)
+        bw_time = average_over_iter(results[str(bwd_op)], nrep)
+
+        fwd_op_time.append({str(layer_name):fw_time})
+        bwd_op_time.append({str(layer_name):bw_time})
+    
+    return fwd_op_time, bwd_op_time
+
+def t_summarize_layers_timing(cuda_r, names, lk_map=DEFAULT_LAYER_KERNEL, nrep=1):
     """
         summarize the cuda profiler infos.
         _____________
@@ -54,21 +82,16 @@ def t_summarize_layers_timing(cuda_r, lk_map=DEFAULT_LAYER_KERNEL, nrep=1):
         
     """
     results = parse_operation_time(cuda_r.function_events)
+
     
     fwd_ops = lk_map["fw"][lk_map["fw"].isin(results.index)]
     bwd_ops = lk_map["bw"][lk_map["bw"].isin(results.index)]
-    
-    fwd_op_time = []
-    bwd_op_time = []
 
-    for fwd_op, bwd_op in zip(fwd_ops, bwd_ops):
-        fw_time = average_over_iter(results[str(fwd_op)], nrep)
-        bw_time = average_over_iter(results[str(bwd_op)], nrep)
-        
-        fwd_op_time.extend(fw_time)
-        bwd_op_time.extend(bw_time)
     
-    return fwd_op_time, bwd_op_time
+    fwd_op_time, bwd_op_time = kernel_fwd_bwd_time(fwd_ops, bwd_ops, results, nrep)
+    fwd_time2plot,bwd_time2plot = correct_layer_time_order(names, fwd_op_time, bwd_op_time)
+
+    return fwd_time2plot, bwd_time2plot
 
 def meta(results, num):
     """
@@ -81,7 +104,7 @@ def meta(results, num):
     return pd.DataFrame({"time":total_time, 
                          "rep":rep_per_iter})[correct].sort_values(by="time", ascending=False)
 
-def t_profile_timings(model, inp):
+def t_profile_timings(model, inp, names):
     """
     """
     # Warm-up
@@ -89,5 +112,5 @@ def t_profile_timings(model, inp):
     # Profile
     cuda_r, _ = run_autograd_prof(train_model, model, inp)
     # Summarize results
-    return t_summarize_layers_timing(cuda_r, lk_map=DEFAULT_LAYER_KERNEL, nrep=1)
+    return t_summarize_layers_timing(cuda_r, names, lk_map=DEFAULT_LAYER_KERNEL, nrep=1)
 

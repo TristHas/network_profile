@@ -46,9 +46,11 @@ def dataframe_readble(data):
 def t_profile_net(model, inp, layer_type=DEFAULT_LTYPE):
     """
     """
-    fwd_time, bwd_time = t_profile_timings(model, inp)
+    
     fw_flops, bw_flops,\
     names, in_size, out_size, mac  = t_profile_theory(model, inp, layer_type)
+    
+    fwd_time, bwd_time = t_profile_timings(model, inp, names)
     
     return _summarize_df(fwd_time, bwd_time, 
                          fw_flops, bw_flops, names, 
