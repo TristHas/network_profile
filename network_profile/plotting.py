@@ -137,3 +137,26 @@ def format_ax(ax, data, title="", rotation=70):
     ax.set_title(title)
     ax.legend()
     ax.xaxis.grid(True)
+
+def plot_time_FLOPs_FLOP_MAC(data):
+
+    fig, axes = plt.subplots(2, 2, figsize=(30,16))
+
+
+    ax = axes[0,0]
+    plt_time(data, mode="fwd", normalize=False, ax=ax)
+    plt_time(data, mode="bwd", normalize=False, ax=ax)
+    plt_time(data, mode="total", normalize=False, ax=ax)
+
+    ax = axes[0,1]
+    plt_FLOP_seconds(data, "fwd", ax=ax)
+    plt_FLOP_seconds(data, "bwd", ax=ax)
+    plt_FLOP_seconds(data, "total", ax=ax)
+
+    ax = axes[1,0]
+    plt_FLOP(data, mode="fwd", normalize=False, ax=ax)
+    plt_FLOP(data, mode="bwd", normalize=False, ax=ax)
+    plt_FLOP(data, mode="total", normalize=False, ax=ax)
+
+    ax = axes[1,1]
+    plt_MAC(data, ax)
