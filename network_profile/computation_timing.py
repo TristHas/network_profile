@@ -62,13 +62,14 @@ def kernel_fwd_bwd_time(fwd_ops, bwd_ops, results, nrep):
     bwd_op_time = []
 
     for fwd_op, bwd_op, layer_name in zip(fwd_ops, bwd_ops, fwd_ops.index):
-
+       
         fw_time = average_over_iter(results[str(fwd_op)], nrep)
         bw_time = average_over_iter(results[str(bwd_op)], nrep)
-
+        bw_time.reverse()
+        
         fwd_op_time.append({str(layer_name):fw_time})
         bwd_op_time.append({str(layer_name):bw_time})
-    
+        
     return fwd_op_time, bwd_op_time
 
 def t_summarize_layers_timing(cuda_r, names, lk_map=DEFAULT_LAYER_KERNEL, nrep=1):
