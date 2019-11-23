@@ -1,6 +1,39 @@
 import numpy as np
 import torch.nn as nn
 
+def mac_Conv2d(*para):
+    input_shape = para[0]
+    output_shape = para[1]
+    kernel = np.prod(list(para[2]))
+    bs = output_shape[0]
+    mac = np.prod(input_shape) + np.prod(output_shape) + (kernel)
+    return mac
+
+def mac_Conv3d(*para):
+    return 10
+
+def mac_BatchNorm2d(*para):
+    input_shape = para[0]
+    output_shape = para[1]
+    mac = np.prod(input_shape) + np.prod(output_shape)
+    return mac
+
+def mac_ReLU6(*para):
+    return mac_BatchNorm2d(*para)
+
+def mac_ReLU(*para):
+    return mac_BatchNorm2d(*para)
+
+def mac_MaxPool2d(*para):
+    return mac_BatchNorm2d(*para)
+
+def mac_MaxPool3d(*para):
+    return 10
+    
+def cal_MaxPool3d(*para):
+    return 10
+
+    
 def cal_Conv_Mac(*para):
     input_shape = para[0]
     output_shape = para[1]
