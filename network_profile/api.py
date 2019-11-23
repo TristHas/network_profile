@@ -1,10 +1,12 @@
 import numpy as np
 import pandas as pd
+from si_prefix import si_format
 
 from .computation_timing import t_profile_timings
 from .computation_count import t_profile_theory
 from .memory_profile import log_memory
 from .helpers import DEFAULT_LTYPE
+from .plotting import *
 
 def _fix_timing_index(timings):
     mp = {"Conv":"Conv2d", "BatchNorm2d":"BatchNorm2d", "ReLU":"ReLU", 'MaxPool2d':'MaxPool2d'}
@@ -35,6 +37,21 @@ def _merge_time_theory(timings, theory):
     theory = _summarize_theory(theory)
     timings = _fix_timing_index(timings)
     return theory.merge(timings, on="layer")
+
+def _get_sci_precision_number(numbers):
+    values = []
+    for num in numbers:
+        values.append(si_format(num,precision = 2))
+    return values
+
+def dataframe_readble(data):
+    data_sci = data.copy()
+    dataframe_columns = ("fw_operation (FLOP)","forward_time (s)","forward_effi (FLOPs)",
+                         "bw_operation (FLOP)","backward_time (s)","backward_effi (FLOPs)",
+                         "Mac")
+    for col in dataframe_columns:
+        data_sci[col] = _get_sci_precision_number(data[col])
+    return data_sci
 
 def t_profile_net(model, inp, layer_type=DEFAULT_LTYPE):
     """
