@@ -2,92 +2,179 @@ import pandas as pd
 import numpy as np
 from torch.autograd import profiler
 from .helpers import train_model, select_layers, DEFAULT_LTYPE
+from collections import OrderedDict
 
-def layer_kernels():
-    layer_map = {"name":["Conv2d","Conv2d_dw","BatchNorm2d","ReLU","MaxPool2d","ReLU6","AvgPool2d"],
-                   "fw":["cudnn_convolution","thnn_conv_depthwise2d_forward","batch_norm","relu_","max_pool2d","hardtanh_","avg_pool2d"],
-                   "bw":["cudnn_convolution_backward", "thnn_conv_depthwise2d_backward", "CudnnBatchNormBackward", "ReluBackward1", 
-                         "MaxPool2DWithIndicesBackward"," HardtanhBackward1",  "avg_pool2d_backward"]}
+ltypes = {"Conv": {"fwd":{'conv2d','conv3d'}, "bwd":{'CudnnConvolutionBackward', 'ThnnConvDepthwise2DBackward'}},
+          "BatchNorm2d":{"fwd":'batch_norm',"bwd":{'NativeBatchNormBackward',"CudnnBatchNormBackward"}},
+          "ReLU6":{"fwd":'hardtanh_',"bwd":{'HardtanhBackward1'}},
+          "ReLU":{"fwd":'relu_',"bwd":{'ReluBackward1','ReluBackward0'}},
+          "MaxPool2d":{"fwd":'max_pool2d',"bwd":{'MaxPool2DWithIndicesBackward'}},
+          "MaxPool3d":{"fwd":'max_pool3d',"bwd":{'MaxPool3DWithIndicesBackward'}}, 
+         }
 
-    df = pd.DataFrame(index=layer_map["name"],columns=["fw","bw"])
-    df["fw"] = layer_map["fw"]
-    df["bw"] = layer_map["bw"]
-    return df
-
-DEFAULT_LAYER_KERNEL = layer_kernels()
-
-def average_over_iter(x, n=1):
-    """
-    """
-    n = len(x) // n
-    return list(np.mean(np.asarray(x).reshape(-1,n),axis=0))
-
-def select_attributes(events, attr = "cuda_time", operation = "conv2d"):
-    """
-    """
-    return list(map(lambda x:getattr(x, attr), filter(lambda x:x.name==operation ,events)))
-
-def list_operations(events):
-    """
-    """
-    return set(map(lambda x:x.name, events))
-
-def parse_operation_time(events):
-    """
-    """
-    return pd.Series({operation: select_attributes(events, attr='cuda_time', operation=operation)\
-                                 for operation in list_operations(events)})
+layers = ltypes.keys()
 
 def run_autograd_prof(func,*para):
     with profiler.profile(use_cuda = True) as prof:
         func_return = func(*para)
     return prof, func_return
 
-def t_summarize_layers_timing(cuda_r, lk_map=DEFAULT_LAYER_KERNEL, nrep=1):
+def isin(cur, prev):
+     return (cur[0] > prev[0]) and (cur[1] < prev[1])
+    
+def get_time_interval(event):
+    return event.cpu_interval.start, event.cpu_interval.end
+
+def get_time(x):
+    return x.cuda_time
+
+get_name = lambda x: x.name
+
+
+def identify_root_nodes(events):
+    res = [False]
+
+    previous_time_interval = get_time_interval(events[0])
+
+    for event in events[1:]:
+        current_time_interval = get_time_interval(event)
+        if isin(current_time_interval, previous_time_interval):
+            res.append(True)
+        else:
+            previous_time_interval = current_time_interval
+            res.append(False)
+    return res
+
+def sort_by_root_nodes(events):
+    roots = identify_root_nodes(events)
+    result, idx = {}, 0
+    for i, (event, child_node) in enumerate(list(zip(events, roots))):
+        if child_node:
+            result[idx]["children"].append(event)
+        else:
+            idx += 1
+            result[idx] = {"parent":event, "children":[]}
+    return result
+
+def select(df, names): 
     """
-        summarize the cuda profiler infos.
-        _____________
-        Inputs:
-         - 
-        _____________
-        Outputs
+    """
+    if isinstance(names, str):
+        names = {names}
+    return df[df["name"].isin(names)]
+
+def _map_fwd_bwd(df, ltype):
+    fw = select(df, ltypes[ltype]["fwd"])
+    bw = select(df, ltypes[ltype]["bwd"])
         
-    """
-    results = parse_operation_time(cuda_r.function_events)
+    mapping = pd.DataFrame({"fw_id":fw.idx.sort_values(ascending=True).values,
+                            "bw_id": bw.idx.sort_values(ascending=False).values})
     
-    fwd_ops = lk_map["fw"][lk_map["fw"].isin(results.index)]
-    bwd_ops = lk_map["bw"][lk_map["bw"].isin(results.index)]
-    
-    fwd_op_time = []
-    bwd_op_time = []
+    mapping = {k:v for k,v in zip(
+            fw.idx.sort_values(ascending=True).values,
+            bw.idx.sort_values(ascending=False).values
+    )}
+    return mapping
 
-    for fwd_op, bwd_op in zip(fwd_ops, bwd_ops):
-        fw_time = average_over_iter(results[str(fwd_op)], nrep)
-        bw_time = average_over_iter(results[str(bwd_op)], nrep)
+def map_fwd_bwd(result, ltype_list):
+    df = pd.DataFrame([(k, get_name(v["parent"])) \
+                       for k,v in result.items()], columns=["idx", "name"])
+    return {ltype:_map_fwd_bwd(df, ltype) for ltype in ltype_list}
+
+
+
+def get_node_kernel(comp_node):
+    """
+        FIX ME
+    """
+    return comp_node['parent']
+
+def handle_default(model):
+    """
+        Return all layer types in the model
+    """
+    return layers#NotImplementedError
+
+def get_children_info(val):
+    return {str(v.name):v.cuda_time for v in val['children']} 
+
+def get_node_kernel(comp_node):
+    """
+        FIXME
+    """
+    return comp_node['parent']
+
+def extract_node_info(comp_node):
+    """
+        Input  = comp_node
+        Output = {  "node name":,
+                    "node time":,
+                    "kernel name":,
+                    "kernel time":,
+        }
+    """
+    info = { "node name"   : get_name(comp_node['parent']),
+             "node time"   : get_time(comp_node['parent']),
+             "kernel name" : get_name(get_node_kernel(comp_node)),
+             "kernel time" : get_time(get_node_kernel(comp_node))
+           }
+    return info
+
+def extract_nodes_info(comp_nodes):
+    """
+        Input  = comp_nodes
+        Output = {"parent ker":xxx,"parent cuda time":xxx, "child":{xxx}}
+    """
+    return {idx: extract_node_info(comp_nodes[idx]) \
+            for idx in comp_nodes}
+    
+def get_index(ltype, i):
+    return f"{ltype}_{i}"
+
+def merge_nodes(fwd_node, bwd_node):
+    """
+    """
+    merged_node = {}
+    for key in fwd_node.keys():
+        merged_node[f"fwd_{key}"]=fwd_node[key]
+    for key in bwd_node.keys():
+        merged_node[f"bwd_{key}"]=bwd_node[key]    
+    return merged_node
+    
+def merge_fwd_bwd_node(infos, fwd_bwd_map):
+    """
+        Input dict of infos, fwd_bwd_map
         
-        fwd_op_time.extend(fw_time)
-        bwd_op_time.extend(bw_time)
-    
-    return fwd_op_time, bwd_op_time
+        Output:
+            dict of order map, consist of fwd/bwd parent ker name, fwd/bwd cuda time
+    """
+    order_map = {}
+    for ltype, fw_map_bw in fwd_bwd_map.items():
+        # Make sure the idx of each module is sorted
+        fw_keys = sorted(fw_map_bw.keys())
+        for idx, (fw_key) in enumerate(fw_keys):
+            #Get good nodes
+            bw_key = fw_map_bw[fw_key]
+            fw_node, bw_node = infos[fw_key], infos[bw_key]
+            # Compute the value = merged node
+            node = merge_nodes(fw_node, bw_node)
+            # Compute index = ltype_idx
+            idx = get_index(ltype, idx)
+            order_map[idx] = node
+    return order_map
 
-def meta(results, num):
-    """
-    """
-    total_time = results.apply(sum)
-    repetition = results.apply(len)
-    rep_per_iter = repetition // num
-    correct = (repetition % num)==0
-    
-    return pd.DataFrame({"time":total_time, 
-                         "rep":rep_per_iter})[correct].sort_values(by="time", ascending=False)
+def t_profile_timings(model, inp, layers=None):
+    if layers is None:
+        layers = handle_default(model)
 
-def t_profile_timings(model, inp):
-    """
-    """
-    # Warm-up
     train_model(model, inp)
-    # Profile
     cuda_r, _ = run_autograd_prof(train_model, model, inp)
-    # Summarize results
-    return t_summarize_layers_timing(cuda_r, lk_map=DEFAULT_LAYER_KERNEL, nrep=1)
+    events = cuda_r.function_events
 
+    comp_nodes = sort_by_root_nodes(events)
+    fwd_bwd_map = map_fwd_bwd(comp_nodes, layers)
+
+    infos = extract_nodes_info(comp_nodes)
+    out = merge_fwd_bwd_node(infos, fwd_bwd_map)
+
+    return pd.DataFrame(out).T

@@ -6,32 +6,40 @@ from .computation_count import t_profile_theory
 from .memory_profile import log_memory
 from .helpers import DEFAULT_LTYPE
 
-def _summarize_df(fwd_time, bwd_time, 
-                 fw_flops, bw_flops, 
-                 names, in_size, out_size):
-    """
-        Return a pandas.DataFrame summarizing the input sequences
-    """
-    return pd.DataFrame({"layer":names,
-                         "fw_operation":fw_flops,
-                         "forward_time":fwd_time,
-                         "forward_effi": np.array(fw_flops)/np.array(fwd_time),
-                         "bw_operation": bw_flops,
-                         "backward_time":bwd_time,
-                         "backward_effi":np.array(bw_flops)/np.array(bwd_time),
-                         "bw_time/fw_time":np.array(bwd_time)/np.array(fwd_time),
-                         "input_size":in_size,
-                         "output_size":out_size
-                    })
+def _fix_timing_index(timings):
+    mp = {"Conv":"Conv2d", "BatchNorm2d":"BatchNorm2d", "ReLU":"ReLU", 'MaxPool2d':'MaxPool2d'}
+    idxes = timings.index.map(lambda x:x.split("_")[1])
+    names = timings.index.map(lambda x:x.split("_")[0])
+    names = names.map(lambda x:mp[x])
+    layers = [f"{name}_{idx}" for name, idx in zip(names, idxes)]
+    timings["layer"] = layers
+    return timings
+    
+def _summarize_theory(data):
+    fw_flops, bw_flops, names, in_sizes, out_sizes = data
+    counter = {k:1 for k in np.unique(names)}
+    new_names = []
+    for name in names:
+        new_names.append(f"{name}_{counter[name]}")
+        counter[name] += 1
+
+    df_theory = pd.DataFrame({"layer":new_names,
+                     "fw_operation":fw_flops,
+                     "bw_operation": bw_flops,
+                     "input_size":in_sizes,
+                     "output_size":out_sizes
+                            })
+    return df_theory
+
+def _merge_time_theory(timings, theory):
+    theory = _summarize_theory(theory)
+    timings = _fix_timing_index(timings)
+    return theory.merge(timings, on="layer")
 
 def t_profile_net(model, inp, layer_type=DEFAULT_LTYPE):
     """
     """
-    fwd_time, bwd_time = t_profile_timings(model, inp)
-    fw_flops, bw_flops,\
-    names, in_size, out_size  = t_profile_theory(model, inp, layer_type)
-    
-    return _summarize_df(fwd_time, bwd_time, 
-                         fw_flops, bw_flops, names, 
-                         in_size, out_size)
-
+    a = t_profile_timings(model, inp)
+    b = t_profile_theory(model, inp, layer_type)
+    c = _merge_time_theory(a, b)
+    return c
