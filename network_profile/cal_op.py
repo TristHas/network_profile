@@ -24,22 +24,15 @@ def cal_BN_Mac(*para):
     
     return mac
 
-def cal_Conv3d(*para, stride=1, padding=1, groups=1, bias=False, name='conv'):
-    input_shape = para[0]
+def cal_Conv3d(*para):
     output_shape = para[1]
     
-    bs = input_shape[0]
-    c_in = input_shape[1]
+    HWZ = np.prod(output_shape[2:])
+    bs = output_shape[0]
+    kernel = np.prod(para[2])
     
-    c_out = output_shape[0]
-    Z = output_shape[1]
-    Y = output_shape[2]
-    X = output_shape[3]
-    
-    kernel = int(np.prod(list(para[2])))
-
-    flops = bs * c_in * X * Y * Z * c_out * kernel
-    return flops
+    flop = kernel * HWZ * bs
+    return flop
 
 def cal_Conv2d(*para, stride=1, padding=1, groups=1, bias=False, name='conv'):
     input_shape = para[0]
