@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-DEFAULT_LTYPE = {nn.Conv2d, nn.BatchNorm2d, nn.MaxPool2d, nn.ReLU, nn.ReLU6, nn.AvgPool2d}
+DEFAULT_LTYPE = {nn.Conv2d, nn.Conv3d, nn.BatchNorm2d, nn.BatchNorm3d, nn.MaxPool2d, nn.MaxPool3d, nn.ReLU, nn.ReLU6, nn.AvgPool2d}
 
 def select_layers(model, ltype=DEFAULT_LTYPE):
     """

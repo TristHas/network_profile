@@ -4,8 +4,8 @@ from torch.autograd import profiler
 from .helpers import train_model, select_layers, DEFAULT_LTYPE
 from collections import OrderedDict
 
-ltypes = {"Conv": {"fwd":{'conv2d','conv3d'}, "bwd":{'CudnnConvolutionBackward', 'ThnnConvDepthwise2DBackward'}},
-          "BatchNorm2d":{"fwd":'batch_norm',"bwd":{'NativeBatchNormBackward',"CudnnBatchNormBackward"}},
+ltypes = {"Conv": {"fwd":{'conv2d','conv3d'}, "bwd":{'ThnnConv2DBackward', 'ThnnConvDepthwise2DBackward', "ThnnConvDepthwise2DBackward","CudnnConvolutionBackward", "SlowConvDilated3DBackward"}},
+          "BatchNorm3d":{"fwd":'batch_norm',"bwd":{'NativeBatchNormBackward'}},
           "ReLU6":{"fwd":'hardtanh_',"bwd":{'HardtanhBackward1'}},
           "ReLU":{"fwd":'relu_',"bwd":{'ReluBackward1','ReluBackward0'}},
           "MaxPool2d":{"fwd":'max_pool2d',"bwd":{'MaxPool2DWithIndicesBackward'}},
@@ -26,7 +26,10 @@ def get_time_interval(event):
     return event.cpu_interval.start, event.cpu_interval.end
 
 def get_time(x):
-    return x.cuda_time
+    """
+    return the time for second
+    """
+    return x.cuda_time * 1e-6
 
 get_name = lambda x: x.name
 

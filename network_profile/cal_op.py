@@ -5,7 +5,7 @@ def mac_Conv2d(*para):
     input_shape = para[0]
     output_shape = para[1]
     kernel = np.prod(list(para[2]))
-    bs = output_shape[0]
+    #bs = output_shape[0]
     mac = np.prod(input_shape) + np.prod(output_shape) + (kernel)
     return mac
 
@@ -24,28 +24,37 @@ def mac_ReLU(*para):
 def mac_MaxPool2d(*para):
     return mac_BatchNorm2d(*para)
 
-def cal_Conv_Mac(*para):
-    input_shape = para[0]
-    output_shape = para[1]
-    
-    kernel = np.prod(list(para[2]))
-    
-    c_in = input_shape[1]
-    c_out = output_shape[0]
+def mac_Conv3d(*para):
+    return mac_Conv2d(*para)
 
-    mac = np.prod(input_shape) + np.prod(output_shape) + (kernel * c_in * c_out)
-    return mac
+def mac_BatchNorm3d(*para):
+    return mac_BatchNorm2d(*para)
 
-def cal_BN_Mac(*para):
-    input_shape = para[0]
-    output_shape = para[1]
-    
-    c_in = input_shape[1]
-    c_out = output_shape[-3]
+def mac_MaxPool3d(*para):
+    return mac_BatchNorm2d(*para)
 
-    mac = np.prod(input_shape) + np.prod(output_shape) 
+# def cal_Conv_Mac(*para):
+#     input_shape = para[0]
+#     output_shape = para[1]
     
-    return mac
+#     kernel = np.prod(list(para[2]))
+    
+#     c_in = input_shape[1]
+#     c_out = output_shape[0]
+
+#     mac = np.prod(input_shape) + np.prod(output_shape) + (kernel * c_in * c_out)
+#     return mac
+
+# def cal_BN_Mac(*para):
+#     input_shape = para[0]
+#     output_shape = para[1]
+    
+#     c_in = input_shape[1]
+#     c_out = output_shape[-3]
+
+#     mac = np.prod(input_shape) + np.prod(output_shape) 
+    
+#     return mac
 
 def cal_Conv3d(*para):
     output_shape = para[1]
@@ -92,4 +101,7 @@ def cal_MaxPool2d(*para, name='maxpool2d'):
     return np.prod(para[0])  
 
 def cal_AvgPool2d(*para):
+    return cal_MaxPool2d(*para)
+
+def cal_MaxPool3d(*para):
     return cal_MaxPool2d(*para)
