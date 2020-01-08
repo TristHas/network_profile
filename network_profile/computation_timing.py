@@ -4,7 +4,7 @@ from torch.autograd import profiler
 from .helpers import train_model, select_layers, DEFAULT_LTYPE
 from collections import OrderedDict
 
-ltypes = {"Conv": {"fwd":{'conv2d','conv3d'}, "bwd":{'ThnnConv2DBackward', 'ThnnConvDepthwise2DBackward', "ThnnConvDepthwise2DBackward","CudnnConvolutionBackward", "SlowConvDilated3DBackward"}},
+ltypes = {"Conv": {"fwd":{'conv2d','conv3d','MyConv3d'}, "bwd":{'ThnnConv2DBackward', 'ThnnConvDepthwise2DBackward', "ThnnConvDepthwise2DBackward","CudnnConvolutionBackward", "SlowConvDilated3DBackward","MyConv3dBackward"}},
           "BatchNorm3d":{"fwd":'batch_norm',"bwd":{'NativeBatchNormBackward'}},
           "ReLU6":{"fwd":'hardtanh_',"bwd":{'HardtanhBackward1'}},
           "ReLU":{"fwd":'relu_',"bwd":{'ReluBackward1','ReluBackward0'}},

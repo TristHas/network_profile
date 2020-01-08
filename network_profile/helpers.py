@@ -1,6 +1,8 @@
+import fast3d
 import torch.nn as nn
+import torch
 
-DEFAULT_LTYPE = {nn.Conv2d, nn.Conv3d, nn.BatchNorm2d, nn.BatchNorm3d, nn.MaxPool2d, nn.MaxPool3d, nn.ReLU, nn.ReLU6, nn.AvgPool2d}
+DEFAULT_LTYPE = {nn.Conv2d, nn.Conv3d, nn.BatchNorm2d, nn.BatchNorm3d, nn.MaxPool2d, nn.MaxPool3d, nn.ReLU, nn.ReLU6, nn.AvgPool2d, fast3d.module.Conv3d}
 
 def select_layers(model, ltype=DEFAULT_LTYPE):
     """
@@ -13,4 +15,5 @@ def train_model(model, inp):
     """
     """
     out = model(inp)
-    out.sum().backward()
+    grad = torch.randn_like(out)
+    out.backward(grad)

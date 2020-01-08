@@ -2,7 +2,6 @@ import torch.nn as nn
 
 from . import cal_op
 from .helpers import train_model
-
 DEFAULT_LTYPE = {nn.Conv2d, nn.BatchNorm2d, nn.MaxPool2d, nn.ReLU, nn.ReLU6, nn.AvgPool2d}#, nn.Conv3d, nn.MaxPool3d}
 
 def select_layers(model, ltype=DEFAULT_LTYPE):
@@ -21,7 +20,7 @@ def filter_mod_name(module):
     return str(module.__class__).split(".")[-1].split("'")[0]
 
 def isconv(layer_name):
-    return layer_name.find("Conv") == 0
+    return layer_name.find("Conv") != -1 or layer_name.find("conv") != -1
 
 def t_closure_func(layer_stats):
     """
