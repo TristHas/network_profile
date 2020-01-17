@@ -27,6 +27,9 @@ def mac_MaxPool2d(*para):
 def mac_Conv3d(*para):
     return mac_Conv2d(*para)
 
+def mac_ConvTranspose3d(*para):
+    return mac_Conv2d(*para)
+    
 def mac_My_conv3d_module(*para):
     return mac_Conv3d(*para)
 
@@ -36,6 +39,8 @@ def mac_BatchNorm3d(*para):
 def mac_MaxPool3d(*para):
     return mac_BatchNorm2d(*para)
 
+def mac_Upsample(*para):
+    return mac_BatchNorm2d(*para)
 # def cal_Conv_Mac(*para):
 #     input_shape = para[0]
 #     output_shape = para[1]
@@ -59,6 +64,9 @@ def mac_MaxPool3d(*para):
     
 #     return mac
 def cal_My_conv3d_module(*para):
+    return cal_Conv3d(*para)
+
+def cal_ConvTranspose3d(*para):
     return cal_Conv3d(*para)
 
 def cal_Conv3d(*para):
@@ -110,3 +118,8 @@ def cal_AvgPool2d(*para):
 
 def cal_MaxPool3d(*para):
     return cal_MaxPool2d(*para)
+
+def cal_Upsample(*para):
+    return np.prod(para[1])
+
+

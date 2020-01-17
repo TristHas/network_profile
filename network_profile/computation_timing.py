@@ -4,12 +4,14 @@ from torch.autograd import profiler
 from .helpers import train_model, select_layers, DEFAULT_LTYPE
 from collections import OrderedDict
 
-ltypes = {"Conv": {"fwd":{'conv2d','conv3d','MyConv3d'}, "bwd":{'ThnnConv2DBackward', 'ThnnConvDepthwise2DBackward', "ThnnConvDepthwise2DBackward","CudnnConvolutionBackward", "SlowConvDilated3DBackward","MyConv3dBackward"}},
+ltypes = {"Conv": {"fwd":{'conv2d','conv3d','MyConv3d'}, "bwd":{'ThnnConv2DBackward', 'ThnnConvDepthwise2DBackward', "ThnnConvDepthwise2DBackward","CudnnConvolutionBackward","SlowConvDilated3DBackward","MyConv3dBackward"}},
+          "ConvTranspose3d":{"fwd":'conv_transpose3d',"bwd":{'SlowConvTranspose3DBackward'}},
           "BatchNorm3d":{"fwd":'batch_norm',"bwd":{'NativeBatchNormBackward'}},
           "ReLU6":{"fwd":'hardtanh_',"bwd":{'HardtanhBackward1'}},
           "ReLU":{"fwd":'relu_',"bwd":{'ReluBackward1','ReluBackward0'}},
           "MaxPool2d":{"fwd":'max_pool2d',"bwd":{'MaxPool2DWithIndicesBackward'}},
           "MaxPool3d":{"fwd":'max_pool3d',"bwd":{'MaxPool3DWithIndicesBackward'}}, 
+          "Upsample": {"fwd":'upsample_trilinear3d',"bwd":{'UpsampleTrilinear3DBackward'}}, 
          }
 
 layers = ltypes.keys()

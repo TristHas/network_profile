@@ -9,7 +9,7 @@ from .helpers import DEFAULT_LTYPE
 from .plotting import *
 
 def _fix_timing_index(timings):
-    mp = {"Conv":"Conv3d", "BatchNorm3d":"BatchNorm3d", "ReLU":"ReLU", 'MaxPool3d':'MaxPool3d'}
+    mp = {"Conv":"Conv3d", "BatchNorm3d":"BatchNorm3d", "ReLU":"ReLU", 'MaxPool3d':'MaxPool3d', "ConvTranspose3d":"ConvTranspose3d", "Upsample":"Upsample"}
     idxes = timings.index.map(lambda x:x.split("_")[1])
     names = timings.index.map(lambda x:x.split("_")[0])
     names = names.map(lambda x:mp[x])
